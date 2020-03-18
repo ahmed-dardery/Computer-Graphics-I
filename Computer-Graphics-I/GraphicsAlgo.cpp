@@ -1,7 +1,7 @@
 #include "GraphicsAlgo.h"
 #include <cmath>
 #include <algorithm>
-
+#define SetPixel SetPixelV
 void SetMultiLine(HDC hdc, int xc, int yc, COLORREF color, int x, int y) {
     DrawLine(hdc, xc, yc, xc + x, yc + y, color);
     DrawLine(hdc, xc, yc, xc - x, yc + y, color);
@@ -66,26 +66,34 @@ void DrawLine(HDC hdc, int xs, int ys, int xe, int ye, COLORREF color) {
     int dx = xe - xs;
     int dy = ye - ys;
     if (abs(dx) >= abs(dy)) {
-        if (xe < xs) std::swap(xs, xe), std::swap(ys, ye);
+        if (xe < xs) {
+            std::swap(xs, xe), std::swap(ys, ye);
+            dx *= -1;
+            dy *= -1;
+        }
         SetPixel(hdc, xs, ys, color);
 
         int x = xs;
         int y = ys;
         int diff = ye > ys ? 1 : -1;
         int d = 2 * dy - diff * dx;
-
-        int dir = -dx * diff;
+        
         while (x < xe) {
             ++x;
-            if (d * dir < 0) {
+            if (d * diff > 0) {
                 y += diff, d -= 2 * dx * diff;
             }
             d += 2 * dy;
+            SetPixel(hdc, x, y-1, color);
             SetPixel(hdc, x, y, color);
         }
     }
     else {
-        if (ye < ys) std::swap(xs, xe), std::swap(ys, ye);
+        if (ye < ys) {
+            std::swap(xs, xe), std::swap(ys, ye);
+            dx *= -1;
+            dy *= -1;
+        }
         SetPixel(hdc, xs, ys, color);
 
         int x = xs;
@@ -93,13 +101,13 @@ void DrawLine(HDC hdc, int xs, int ys, int xe, int ye, COLORREF color) {
         int diff = xe > xs ? 1 : -1;
         int d = dy * diff - 2 * dx;
 
-        int dir = dy * diff;
         while (y < ye) {
-            if (d * dir < 0) {
+            if (d * diff < 0) {
                 x += diff, d += 2 * dy * diff;
             }
             ++y;
             d -= 2 * dx;
+            SetPixel(hdc, x-1, y, color);
             SetPixel(hdc, x, y, color);
         }
     }

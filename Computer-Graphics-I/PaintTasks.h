@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include "GraphicsAlgo.h"
+#define SetPixel SetPixelV
 int Tasks_LClickCount[] = { 2,1,1,3,3 };
 
 void FillTwoQuadrants(HDC hdc, int xc, int yc, COLORREF color, int x, int y) {
