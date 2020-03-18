@@ -51,7 +51,8 @@ void RingDrawer(HDC hdc, int xc, int yc, COLORREF color, int x, int y) {
         RGB(255,255,0),
         RGB(128,128,0)
     };
-    DrawLine(hdc, xc + xx, yc + yy, xc + x, yc + y, colors[0]);
+    if (!dropFirstQuadrant)
+        DrawLine(hdc, xc + xx, yc + yy, xc + x, yc + y, colors[0]);
     DrawLine(hdc, xc - xx, yc - yy, xc - x, yc - y, colors[1]);
     DrawLine(hdc, xc - xx, yc + yy, xc - x, yc + y, colors[2]);
     DrawLine(hdc, xc + xx, yc - yy, xc + x, yc - y, colors[3]);
