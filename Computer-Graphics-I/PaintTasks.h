@@ -38,10 +38,8 @@ void ColorfulQuadrants(HDC hdc, int xc, int yc, COLORREF color, int x, int y) {
     DrawLine(hdc, xc, yc, xc + y, yc - x, colors[7]);
 }
 
-double MULTIPLYBY; bool dropFirstQuadrant;
+bool dropFirstQuadrant;
 void RingDrawer(HDC hdc, int xc, int yc, COLORREF color, int x, int y) {
-    int xx =  x* MULTIPLYBY;
-    int yy = y * MULTIPLYBY;
     static COLORREF colors[] = {
         RGB(255, 0, 0),
         RGB(128,0,0),
@@ -53,15 +51,15 @@ void RingDrawer(HDC hdc, int xc, int yc, COLORREF color, int x, int y) {
         RGB(128,128,0)
     };
     if (!dropFirstQuadrant)
-        DrawLine(hdc, xc + xx, yc + yy, xc + x, yc + y, colors[0]);
-    DrawLine(hdc, xc - xx, yc - yy, xc - x, yc - y, colors[1]);
-    DrawLine(hdc, xc - xx, yc + yy, xc - x, yc + y, colors[2]);
-    DrawLine(hdc, xc + xx, yc - yy, xc + x, yc - y, colors[3]);
+        SetPixel(hdc, xc + x, yc + y, colors[0]);
+    SetPixel(hdc, xc - x, yc - y, colors[1]);
+    SetPixel(hdc, xc - x, yc + y, colors[2]);
+    SetPixel(hdc, xc + x, yc - y, colors[3]);
 
-    DrawLine(hdc, xc + yy, yc + xx, xc + y, yc + x, colors[4]);
-    DrawLine(hdc, xc - yy, yc - xx, xc - y, yc - x, colors[5]);
-    DrawLine(hdc, xc - yy, yc + xx, xc - y, yc + x, colors[6]);
-    DrawLine(hdc, xc + yy, yc - xx, xc + y, yc - x, colors[7]);
+    SetPixel(hdc, xc + y, yc + x, colors[4]);
+    SetPixel(hdc, xc - y, yc - x, colors[5]);
+    SetPixel(hdc, xc - y, yc + x, colors[6]);
+    SetPixel(hdc, xc + y, yc - x, colors[7]);
 }
 
 int lc_x[3], lc_y[3], clickCnt = 0;
@@ -146,10 +144,13 @@ void Task4_Paint(HDC hdc, PAINTSTRUCT* ps) {
     if (circleSet) {
         int R1 = hypot(lc_x[1] - lc_x[0], lc_y[1] - lc_y[0]);
         int R2 = hypot(lc_x[2] - lc_x[0], lc_y[2] - lc_y[0]);
-        MULTIPLYBY = 1.0*R1 / R2;
+        if (R2 < R1) std::swap(R1, R2);
         dropFirstQuadrant = 0;
-        DrawCircle(hdc, lc_x[0], lc_y[0], R2, 0, RingDrawer);
         DrawLine(hdc, lc_x[0], lc_y[0], lc_x[1], lc_y[1], 0);
+        for (int r = R1; r <= R2; r++)
+        {
+            DrawCircle(hdc, lc_x[0], lc_y[0], r, 0, RingDrawer);
+        }
         DrawLine(hdc, lc_x[0], lc_y[0], lc_x[2], lc_y[2], 0);
     }
     else {
@@ -161,9 +162,12 @@ void Task5_Paint(HDC hdc, PAINTSTRUCT* ps) {
     if (circleSet) {
         int R1 = hypot(lc_x[1] - lc_x[0], lc_y[1] - lc_y[0]);
         int R2 = hypot(lc_x[2] - lc_x[0], lc_y[2] - lc_y[0]);
-        MULTIPLYBY = 1.0 * R1 / R2;
+        if (R2 < R1) std::swap(R1, R2);
         dropFirstQuadrant = 1;
-        DrawCircle(hdc, lc_x[0], lc_y[0], R2, 0, RingDrawer);
+        for (int r = R1; r <= R2; r++)
+        {
+            DrawCircle(hdc, lc_x[0], lc_y[0], r, 0, RingDrawer);
+        }
     }
     else {
         for (int i = 0; i < clickCnt; i++)

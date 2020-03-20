@@ -46,6 +46,8 @@ void DrawCircle(HDC hdc, int xc, int yc, int R, COLORREF color, MultiPixelDrawer
 
     
     func(hdc,xc,yc,color,x, y);
+    func(hdc, xc, yc, color, x, y+1);
+
     int d = 5 - 4 * R;
     while (x > y)
     {
@@ -57,9 +59,9 @@ void DrawCircle(HDC hdc, int xc, int yc, int R, COLORREF color, MultiPixelDrawer
         y++;
 
         func(hdc, xc, yc, color, x,y);
+        func(hdc, xc, yc, color, x, y + 1);
+
     }
-
-
 }
 
 void DrawLine(HDC hdc, int xs, int ys, int xe, int ye, COLORREF color) {
