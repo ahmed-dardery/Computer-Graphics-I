@@ -2,7 +2,8 @@
 #include <algorithm>
 #include "Win32.h"
 #include "GraphicsAlgo.h"
-
+#include "Geometry.h"
+using namespace Geometry;
 using namespace GraphicsAlgo;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -11,7 +12,31 @@ int main(int argc, char* argv[]) {
     return WinMain(GetModuleHandle(NULL), NULL, argv[0], 1);
 }
 
+
+enum class MODE {
+    NONE = 0,
+    LINE,
+    CIRCLE,
+    CURVE,
+    WINDOW
+} volatile modeOfOperation;
+
+
+DWORD WINAPI ConsoleMenu(LPVOID lpParam) {
+    int op;
+    while (true) {
+        puts("Enter the code of the shape you would like to draw.\n1 - Line\n2 - Circle\n3 - Curve\n4 - New Window\n5 - End\n");
+        scanf("%d", &op);
+        if (op >= 5 || op <= 0) break;
+        modeOfOperation = (MODE)op;
+    }
+    exit(0);
+    return 0;
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow) {
+
+    CreateThread(NULL, NULL, ConsoleMenu, NULL, NULL, NULL);
 
     HWND hwnd = Win32::CreateFunctionalWindow(hInstance, WndProc,
         RECT{ CW_USEDEFAULT ,CW_USEDEFAULT ,800,600 },
@@ -19,13 +44,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow
 
     Win32::RunMessageLoop();
 
+
     return 0;
 }
-Circle circle, circle2;
-Line line;
-int clickCnt = 0;
+const int MAXN = 100;
+Circle window; int windowCnt = 0;
+Circle circle[MAXN]; int circleCnt = 0;
+Line line[MAXN]; int lineCnt = 0;
+Bezier bezier[MAXN]; int bezierCnt = 0;
+int bezierClickCnt = 0;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    Point cursor = { LOWORD(lParam), HIWORD(lParam) };
     switch (uMsg) {
         case WM_DESTROY: {
             PostQuitMessage(0);
@@ -37,45 +67,64 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
             hdc = Win32::BeginDoubleBufferPaint(hwnd, &ps);
             FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(255, 255, 255)));
+            Win32::StartFastPixel(hdc);
+
+            DrawCircle(hdc, window, 0);
 
 
-            if (circle.radius)
-                DrawCircle(hdc, circle, RGB(0, 0, 0));
-            if (circle2.radius)
-                ClipCircleOnCircle(hdc, circle, circle2, RGB(0, 0, 255), RGB(255, 0, 0));
-            ClipLineOnCircle(hdc, circle, line, RGB(0, 0, 255), RGB(255, 0, 0));
+            for (int i = 0; i < lineCnt; i++)
+                ClipLineOnCircle(hdc, window, line[i], RGB(0, 0, 255), RGB(255, 0, 0));
 
+            for (int i = 0; i < circleCnt; i++)
+                ClipCircleOnCircle(hdc, window, circle[i], RGB(0, 0, 255), RGB(255, 0, 0));
 
+            for (int i = 0; i < bezierCnt; i++)
+                ClipBezierOnCircle(hdc, window, bezier[i], RGB(0, 0, 255), RGB(255, 0, 0));
+
+            for (int i = 0; i < bezierClickCnt; i++)
+                DrawCircle(hdc, { bezier[bezierCnt][i],5 }, 0);
+
+            Win32::EndFastPixel(hdc);
             Win32::EndDoubleBufferPaint(hwnd, &ps);
 
             return 0;
         }
         case WM_MOUSEMOVE: {
             if (wParam & MK_LBUTTON) {
-                if (clickCnt == 0)
-                    circle.radius = hypot(LOWORD(lParam) - circle.org.x, HIWORD(lParam) - circle.org.y);
-                else if (clickCnt == 1) {
-                    line.en = { LOWORD(lParam), HIWORD(lParam) };
-                    circle2.radius = hypot(LOWORD(lParam) - circle2.org.x, HIWORD(lParam) - circle2.org.y);
+                if (modeOfOperation == MODE::LINE) {
+                    line[lineCnt - 1].en = cursor;
                 }
-                InvalidateRect(hwnd, NULL, true);
+                else if (modeOfOperation == MODE::CIRCLE) {
+                    circle[circleCnt - 1].setRadiusFromPoint(cursor);
+                }
+                else if (modeOfOperation == MODE::WINDOW) {
+                    window.setRadiusFromPoint(cursor);
+                }
             }
+            InvalidateRect(hwnd, NULL, true);
             return 0;
         }
         case WM_LBUTTONUP: {
-            clickCnt = (clickCnt + 1) % 2;
+            
+            //clickCnt = (clickCnt + 1) % 2;
             return 0;
         }
         case WM_LBUTTONDOWN: {
-            if (clickCnt == 0) {
-                circle.org = { LOWORD(lParam), HIWORD(lParam) };
-                circle.radius = 0;
+            if (modeOfOperation == MODE::LINE) {
+                line[lineCnt++] = { cursor,cursor };
             }
-            else if (clickCnt == 1) {
-                line.st = { LOWORD(lParam), HIWORD(lParam) };
-                line.en = line.st;
-                circle2.org = { LOWORD(lParam), HIWORD(lParam) };
-                circle2.radius = 0;
+            else if (modeOfOperation == MODE::CIRCLE) {
+                circle[circleCnt++] = { cursor,0 };
+            }
+            else if (modeOfOperation == MODE::WINDOW) {
+                window = { cursor, 0 };
+            }
+            else if (modeOfOperation == MODE::CURVE) {
+                bezier[bezierCnt][bezierClickCnt++] = cursor;
+                if (bezierClickCnt == 4) {
+                    bezierCnt++;
+                    bezierClickCnt = 0;
+                }
             }
             InvalidateRect(hwnd, NULL, true);
             return 0;

@@ -2,67 +2,16 @@
 #include <math.h>
 #include <algorithm>
 
-#define ROUND(x) int(x+0.5)
+#include "Geometry.h"
+
+#include "Win32.h"
+#define SetPixel Win32::SetPixelFast
+
+using namespace Geometry;
+
 const double PI = acos(-1.0);
 
-
-int GraphicsAlgo::Circle::intersectLine(const Line& line, Point& p1, Point& p2) const {
-	int aa, bb, cc;
-	long long a, b, c;
-	Line{ line.st - org, line.en - org }.GetParam(aa, bb, cc);
-	a = aa, b = bb, c = cc;
-	long long q = a * a + b * b;
-
-	int points = 0;
-	long long discr = 1ll * radius * radius * q - c * c;
-
-	if (discr < 0) return 0;
-	else points = 1 + (discr != 0);
-
-	double sq = sqrt(discr);
-
-	double x1 = (-a * c + b * sq) / q;
-	double y1 = (-b * c - a * sq) / q;
-
-	double y2 = (-b * c + a * sq) / q;
-	double x2 = (-a * c - b * sq) / q;
-
-	p1 = { ROUND(x1 + org.x), ROUND(y1 + org.y) };
-	p2 = { ROUND(x2 + org.x), ROUND(y2 + org.y) };
-
-	return points;
-}
-int GraphicsAlgo::Circle::intersectCircle(const Circle& circle, Point& p1, Point& p2) const
-{
-	Point p = circle.org - org;
-	long long xs = p.x, ys = p.y;
-
-	long long R2 = 1ll * radius * radius;
-	long long r2 = 1ll * circle.radius * circle.radius;
-
-	long long q = xs * xs + ys * ys;
-	long long c = (R2 - r2 + q);
-	long long discr = 4* q * R2 - c * c;
-
-	int points = 0;
-	if (discr < 0) return 0;
-	else points = 1 + (discr != 0);
-
-	double sq = sqrt(discr);
-	q *= 2;
-	double x1 = (xs * c + ys * sq) / q;
-	double y1 = (ys * c - xs * sq) / q;
-	double x2 = (xs * c - ys * sq) / q;
-	double y2 = (ys * c + xs * sq) / q;
-
-	p1 = { ROUND(x1 + org.x), ROUND(y1 + org.y) };
-	p2 = { ROUND(x2 + org.x), ROUND(y2 + org.y) };
-	return points;
-}
-bool GraphicsAlgo::Circle::isOutside(const Point& p) const {
-	Point d = p - org;
-	return (d.x * d.x + d.y * d.y > radius * radius);
-}
+#define ROUND(x) int(x+0.5)
 
 void GraphicsAlgo::ClipLineOnCircle(HDC hdc, const Circle& window, const Line& line, COLORREF inColor, COLORREF outColor)
 {
@@ -116,22 +65,42 @@ void GraphicsAlgo::ClipCircleOnCircle(HDC hdc, const Circle& window, const Circl
 			DrawCircle(hdc, circle, inColor);
 	}
 	else {
-		//DEBUG
-		DrawCircle(hdc, { p1,5 }, inColor);
-		DrawCircle(hdc, { p2,5 }, inColor);
-		//DEBUG
-
-		double a1 = atan2(1.0 * p1.y - circle.org.y, 1.0 * p1.x - circle.org.x);
-		double a2 = atan2(1.0 * p2.y - circle.org.y, 1.0 * p2.x - circle.org.x);
+		double a1 = atan2(1.0 * - p1.y + circle.org.y, 1.0 * p1.x - circle.org.x);
+		double a2 = atan2(1.0 * - p2.y + circle.org.y, 1.0 * p2.x - circle.org.x);
 		if (a1 < 0) a1 += 2*PI;
 		if (a2 < 0) a2 += 2*PI;
 
 		if ((p1 - window.org) * (p2 - p1) < 0) std::swap(a1, a2);
 
-		DrawArc(hdc, a1, a2,circle, inColor);
-		DrawArc(hdc, a2, a1, circle, outColor);
+		DrawArc(hdc, a1, a2, circle, outColor);
+		DrawArc(hdc, a2, a1, circle, inColor);
 	}
 	
+}
+
+void GraphicsAlgo::ClipBezierOnCircle(HDC hdc, const Circle& window, const Bezier& bezier, COLORREF inColor, COLORREF outColor)
+{
+	int a3 = -bezier.p1.x + 3 * bezier.p2.x - 3 * bezier.p3.x + bezier.p4.x;
+	int a2 = 3 * bezier.p1.x - 6 * bezier.p2.x + 3 * bezier.p3.x;
+	int a1 = -3 * bezier.p1.x + 3 * bezier.p2.x;
+	int a0 = bezier.p1.x;
+
+	int b3 = -bezier.p1.y + 3 * bezier.p2.y - 3 * bezier.p3.y + bezier.p4.y;
+	int b2 = 3 * bezier.p1.y - 6 * bezier.p2.y + 3 * bezier.p3.y;
+	int b1 = -3 * bezier.p1.y + 3 * bezier.p2.y;
+	int b0 = bezier.p1.y;
+
+	double dt = 0.0001;
+	for (double t = 0; t <= 1; t += dt)
+	{
+		int x = ROUND(a0 + a1 * t + a2 * t * t + a3 * t * t * t);
+		int y = ROUND(b0 + b1 * t + b2 * t * t + b3 * t * t * t);
+		
+		if (window.isOutside({ x,y }))
+			SetPixel(hdc, x,y, outColor);
+		else
+			SetPixel(hdc, x, y, inColor);
+	}
 }
 
 void GraphicsAlgo::DrawLine(HDC hdc, const Line& line, COLORREF color)
@@ -178,9 +147,6 @@ void GraphicsAlgo::DrawLine(HDC hdc, const Line& line, COLORREF color)
 	}
 }
 
-
-
-
 void SetMultiPixel(HDC hdc, int xc, int yc, COLORREF color, int x, int y) {
 	SetPixel(hdc, xc + x, yc + y, color); //1
 	SetPixel(hdc, xc + y, yc + x, color); //2
@@ -190,69 +156,6 @@ void SetMultiPixel(HDC hdc, int xc, int yc, COLORREF color, int x, int y) {
 	SetPixel(hdc, xc - y, yc - x, color); //6
 	SetPixel(hdc, xc + y, yc - x, color); //7
 	SetPixel(hdc, xc + x, yc - y, color); //8
-}
-
-void (*pixelLocs[])(int, int, int&, int&) = {
-	[](int x, int y, int& xr, int& yr) { xr = x, yr = y; },
-	[](int x, int y, int& xr, int& yr) { xr = y, yr = x; },
-	[](int x, int y, int& xr, int& yr) { xr = -y, yr = x; },
-	[](int x, int y, int& xr, int& yr) { xr = -x, yr = y; },
-	[](int x, int y, int& xr, int& yr) { xr = -x, yr = -y; },
-	[](int x, int y, int& xr, int& yr) { xr = -y, yr = -x; },
-	[](int x, int y, int& xr, int& yr) { xr = y, yr = -x; },
-	[](int x, int y, int& xr, int& yr) { xr = x, yr = -y; }
-};
-
-void SetMultiPixelArc(HDC hdc, int xc, int yc, COLORREF color, int x, int y, decltype(pixelLocs) arr, int cnt) {
-	for (int i = 0; i < cnt; i++){
-		int xx, yy;
-		arr[i](x, y, xx, yy);
-		SetPixel(hdc, xc + xx, yc + yy, color);
-	}
-}
-double arcStops[] = { 0,PI / 4,PI / 2,3 * PI / 4,PI,5 * PI / 4,3 * PI / 2,7 * PI / 4 };
-
-void GraphicsAlgo::DrawArc(HDC hdc, double startAngle, double endAngle, const Circle& circle, COLORREF color) {
-	decltype(pixelLocs) mine; int cnt = 0;
-
-	if (startAngle < endAngle) {
-		int s = std::lower_bound(arcStops, arcStops + 8, startAngle) - arcStops;
-		int e = std::upper_bound(arcStops, arcStops + 8, endAngle) - arcStops - 1;
-
-		if (e > s)
-			for (int i = s; i < e; i++)
-				mine[cnt++] = pixelLocs[i];
-	}
-	else {
-		int s = std::upper_bound(arcStops, arcStops + 8, endAngle) - arcStops - 1;
-		int e = std::lower_bound(arcStops, arcStops + 8, startAngle) - arcStops;
-		if (e <= s) {
-			for (int i = 0; i < 8; i++)
-				mine[cnt++] = pixelLocs[i];
-		}
-		else {
-			for (int i = 0; i < s; i++)
-				mine[cnt++] = pixelLocs[i];
-			for (int i = e; i < 8; i++)
-				mine[cnt++] = pixelLocs[i];
-		}
-	}
-
-	int x = circle.radius;
-	int y = 0;
-	SetMultiPixelArc(hdc, circle.org.x, circle.org.y, color, x, y, mine, cnt);
-	int d = 5 - 4 * circle.radius;
-	while (x > y)
-	{
-		if (d > 0) {
-			d += -8 * x + 8;
-			x--;
-		}
-		d += 8 * y + 12;
-		y++;
-
-		SetMultiPixelArc(hdc, circle.org.x, circle.org.y, color, x, y, mine, cnt);
-	}
 }
 
 void GraphicsAlgo::DrawCircle(HDC hdc, const Circle& circle, COLORREF color) {
@@ -272,5 +175,16 @@ void GraphicsAlgo::DrawCircle(HDC hdc, const Circle& circle, COLORREF color) {
 		y++;
 
 		SetMultiPixel(hdc, circle.org.x, circle.org.y, color, x, y);
+	}
+}
+
+void GraphicsAlgo::DrawArc(HDC hdc, double startAngle, double endAngle, const Geometry::Circle& circle, COLORREF color)
+{
+	double dtheta = 1.0 / circle.radius;
+	if (startAngle > endAngle) endAngle += 2 * PI;
+	for (double theta = startAngle; theta <= endAngle; theta += dtheta) {
+		int x = ROUND(circle.radius * cos(theta));
+		int y = ROUND(circle.radius * sin(theta));
+		SetPixel(hdc, circle.org.x+x, circle.org.y - y, color);
 	}
 }

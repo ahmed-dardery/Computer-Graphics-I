@@ -174,13 +174,15 @@ HWND Win32::CreateFunctionalWindow(HINSTANCE hInstance, WNDPROC lpfnWndProc, REC
 
     ShowWindow(hwnd, 1);
 
-    return hwnd;
+    
+   return hwnd;
 }
 
 void Win32::RunMessageLoop()
 {
     // Run the message loop.
     MSG msg = {};
+
     while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
