@@ -72,8 +72,8 @@ void GraphicsAlgo::ClipCircleOnCircle(HDC hdc, const Circle& window, const Circl
 
 		if ((p1 - window.org) * (p2 - p1) < 0) std::swap(a1, a2);
 
-		DrawArc(hdc, a1, a2, circle, outColor);
-		DrawArc(hdc, a2, a1, circle, inColor);
+		DrawArc(hdc, circle, a1, a2, outColor);
+		DrawArc(hdc, circle, a2, a1, inColor);
 	}
 	
 }
@@ -178,7 +178,7 @@ void GraphicsAlgo::DrawCircle(HDC hdc, const Circle& circle, COLORREF color) {
 	}
 }
 
-void GraphicsAlgo::DrawArc(HDC hdc, double startAngle, double endAngle, const Geometry::Circle& circle, COLORREF color)
+void GraphicsAlgo::DrawArc(HDC hdc, const Geometry::Circle& circle, double startAngle, double endAngle, COLORREF color)
 {
 	double dtheta = 1.0 / circle.radius;
 	if (startAngle > endAngle) endAngle += 2 * PI;
@@ -186,5 +186,119 @@ void GraphicsAlgo::DrawArc(HDC hdc, double startAngle, double endAngle, const Ge
 		int x = ROUND(circle.radius * cos(theta));
 		int y = ROUND(circle.radius * sin(theta));
 		SetPixel(hdc, circle.org.x+x, circle.org.y - y, color);
+	}
+}
+
+
+void GraphicsAlgo::ClipLineOnCircles(HDC hdc, const Geometry::Circle* window, int cnt, const Geometry::Line& line, COLORREF inColor, COLORREF outColor)
+{
+	if (cnt <= 0) {
+		DrawLine(hdc, line, outColor);
+		return;
+	}
+	bool stOutside = window->isOutside(line.st);
+	bool enOutside = window->isOutside(line.en);
+	if (!stOutside && !enOutside) {
+		DrawLine(hdc, line, inColor);
+		return;
+	}
+	Point p1, p2;
+	int intersectCnt = window->intersectLine(line, p1, p2);
+	if (intersectCnt < 2) {
+		ClipLineOnCircles(hdc,window+1,cnt-1, line, inColor, outColor);
+		return;
+	}
+	bool p1On = line.OnSegment(p1);
+	bool p2On = line.OnSegment(p2);
+
+	if (p1On && p2On) {
+		Point d1 = line.st - p1, d2 = line.st - p2;
+		if (d1 * d1 > d2 * d2) std::swap(p1, p2);
+
+		ClipLineOnCircles(hdc, window + 1, cnt - 1, { line.st, p1 }, inColor, outColor);
+		DrawLine(hdc, { p1, p2 }, inColor);
+		ClipLineOnCircles(hdc, window + 1, cnt - 1, { p2, line.en }, inColor, outColor);
+	}
+	else if (p1On || p2On) {
+		if (p2On) p1 = p2;
+		if (stOutside) {
+			ClipLineOnCircles(hdc, window + 1, cnt - 1, { line.st, p1 }, inColor, outColor);
+			DrawLine(hdc, { p1, line.en }, inColor);
+		}
+		else {
+			DrawLine(hdc, { line.st, p1 }, inColor);
+			ClipLineOnCircles(hdc, window + 1, cnt - 1, { p1, line.en }, inColor, outColor);
+		}
+	}
+	else {
+		if (stOutside)
+			ClipLineOnCircles(hdc, window + 1, cnt - 1,line, inColor, outColor);
+		else
+			DrawLine(hdc, line, inColor);
+	}
+}
+
+void GraphicsAlgo::ClipArcOnCircles(HDC hdc, const Geometry::Circle* window, int cnt, const Geometry::Circle& circle, double startAngle, double endAngle, COLORREF inColor, COLORREF outColor)
+{
+	if (cnt <= 0) {
+		DrawArc(hdc, circle, startAngle, endAngle, outColor);
+		return;
+	}
+
+	Point p1, p2;
+	if (window->intersectCircle(circle, p1, p2) < 2) {
+		if (window->isOutside(circle.org) || circle.radius > window->radius)
+			ClipArcOnCircles(hdc, window + 1, cnt - 1, circle, startAngle, endAngle,inColor,outColor);
+		else
+			DrawCircle(hdc, circle, inColor);
+	}
+	else {
+		//TODO: optimize by only drawing parts of me that matter.
+		double a1 = atan2(1.0 * -p1.y + circle.org.y, 1.0 * p1.x - circle.org.x);
+		double a2 = atan2(1.0 * -p2.y + circle.org.y, 1.0 * p2.x - circle.org.x);
+		if (a1 < 0) a1 += 2 * PI;
+		if (a2 < 0) a2 += 2 * PI;
+
+		if ((p1 - window->org) * (p2 - p1) < 0) std::swap(a1, a2);
+
+		ClipArcOnCircles(hdc, window+1,cnt-1,circle,a1, a2, inColor,outColor);
+		DrawArc(hdc, circle, a2, a1, inColor);
+	}
+}
+
+void GraphicsAlgo::ClipCircleOnCircles(HDC hdc, const Geometry::Circle* window, int cnt, const Geometry::Circle& circle, COLORREF inColor, COLORREF outColor)
+{
+	ClipArcOnCircles(hdc, window, cnt, circle, 0, 2 * PI, inColor, outColor);
+}
+
+void GraphicsAlgo::ClipBezierOnCircles(HDC hdc, const Geometry::Circle* window, int cnt, const Geometry::Bezier& bezier, COLORREF inColor, COLORREF outColor)
+{
+	int a3 = -bezier.p1.x + 3 * bezier.p2.x - 3 * bezier.p3.x + bezier.p4.x;
+	int a2 = 3 * bezier.p1.x - 6 * bezier.p2.x + 3 * bezier.p3.x;
+	int a1 = -3 * bezier.p1.x + 3 * bezier.p2.x;
+	int a0 = bezier.p1.x;
+
+	int b3 = -bezier.p1.y + 3 * bezier.p2.y - 3 * bezier.p3.y + bezier.p4.y;
+	int b2 = 3 * bezier.p1.y - 6 * bezier.p2.y + 3 * bezier.p3.y;
+	int b1 = -3 * bezier.p1.y + 3 * bezier.p2.y;
+	int b0 = bezier.p1.y;
+
+	double dt = 0.0001;
+	for (double t = 0; t <= 1; t += dt)
+	{
+		int x = ROUND(a0 + a1 * t + a2 * t * t + a3 * t * t * t);
+		int y = ROUND(b0 + b1 * t + b2 * t * t + b3 * t * t * t);
+
+		bool out = 1;
+		for (int w = 0; w < cnt; ++w) {
+			if (!window[w].isOutside({ x,y })) {
+				out = 0;
+				break;
+			}
+		}
+		if (out)
+			SetPixel(hdc, x, y, outColor);
+		else
+			SetPixel(hdc, x, y, inColor);
 	}
 }

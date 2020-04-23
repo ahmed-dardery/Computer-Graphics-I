@@ -19,7 +19,8 @@ enum class MODE {
     CIRCLE,
     CURVE,
     WINDOW
-} volatile modeOfOperation;
+};
+volatile MODE modeOfOperation = MODE::WINDOW;
 
 
 DWORD WINAPI ConsoleMenu(LPVOID lpParam) {
@@ -48,7 +49,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow
     return 0;
 }
 const int MAXN = 100;
-Circle window; int windowCnt = 0;
+Circle window[MAXN]; int windowCnt = 0;
 Circle circle[MAXN]; int circleCnt = 0;
 Line line[MAXN]; int lineCnt = 0;
 Bezier bezier[MAXN]; int bezierCnt = 0;
@@ -69,17 +70,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(255, 255, 255)));
             Win32::StartFastPixel(hdc);
 
-            DrawCircle(hdc, window, 0);
+            for(int i = 0; i < windowCnt; i++)
+                DrawCircle(hdc, window[i], 0);
 
 
             for (int i = 0; i < lineCnt; i++)
-                ClipLineOnCircle(hdc, window, line[i], RGB(0, 0, 255), RGB(255, 0, 0));
+                ClipLineOnCircles(hdc, window,windowCnt, line[i], RGB(0, 0, 255), RGB(255, 0, 0));
 
             for (int i = 0; i < circleCnt; i++)
-                ClipCircleOnCircle(hdc, window, circle[i], RGB(0, 0, 255), RGB(255, 0, 0));
+                ClipCircleOnCircles(hdc, window,windowCnt, circle[i], RGB(0, 0, 255), RGB(255, 0, 0));
 
             for (int i = 0; i < bezierCnt; i++)
-                ClipBezierOnCircle(hdc, window, bezier[i], RGB(0, 0, 255), RGB(255, 0, 0));
+                ClipBezierOnCircles(hdc, window, windowCnt, bezier[i], RGB(0, 0, 255), RGB(255, 0, 0));
 
             for (int i = 0; i < bezierClickCnt; i++)
                 DrawCircle(hdc, { bezier[bezierCnt][i],5 }, 0);
@@ -98,7 +100,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     circle[circleCnt - 1].setRadiusFromPoint(cursor);
                 }
                 else if (modeOfOperation == MODE::WINDOW) {
-                    window.setRadiusFromPoint(cursor);
+                    window[windowCnt -1].setRadiusFromPoint(cursor);
                 }
             }
             InvalidateRect(hwnd, NULL, true);
@@ -117,7 +119,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 circle[circleCnt++] = { cursor,0 };
             }
             else if (modeOfOperation == MODE::WINDOW) {
-                window = { cursor, 0 };
+                window[windowCnt++] = { cursor, 0 };
             }
             else if (modeOfOperation == MODE::CURVE) {
                 bezier[bezierCnt][bezierClickCnt++] = cursor;
