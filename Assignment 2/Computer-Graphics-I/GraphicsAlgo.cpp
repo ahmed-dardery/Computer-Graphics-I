@@ -70,10 +70,8 @@ void GraphicsAlgo::ClipCircleOnCircle(HDC hdc, const Circle& window, const Circl
 		if (a1 < 0) a1 += 2*PI;
 		if (a2 < 0) a2 += 2*PI;
 
-		if ((p1 - window.org) * (p2 - p1) < 0) std::swap(a1, a2);
-
-		DrawArc(hdc, circle, a1, a2, outColor);
-		DrawArc(hdc, circle, a2, a1, inColor);
+		DrawArc(hdc, circle, a2, a1, outColor);
+		DrawArc(hdc, circle, a1, a2, inColor);
 	}
 	
 }
@@ -253,16 +251,14 @@ void GraphicsAlgo::ClipArcOnCircles(HDC hdc, const Geometry::Circle* window, int
 			DrawCircle(hdc, circle, inColor);
 	}
 	else {
-		//TODO: optimize by only drawing parts of me that matter.
+		DrawCircle(hdc, { p1,5 }, 0);
 		double a1 = atan2(1.0 * -p1.y + circle.org.y, 1.0 * p1.x - circle.org.x);
 		double a2 = atan2(1.0 * -p2.y + circle.org.y, 1.0 * p2.x - circle.org.x);
 		if (a1 < 0) a1 += 2 * PI;
 		if (a2 < 0) a2 += 2 * PI;
 
-		if ((p1 - window->org) * (p2 - p1) < 0) std::swap(a1, a2);
-
-		ClipArcOnCircles(hdc, window+1,cnt-1,circle,a1, a2, inColor,outColor);
-		DrawArc(hdc, circle, a2, a1, inColor);
+		ClipArcOnCircles(hdc, window+1,cnt-1,circle,a2, a1, inColor,outColor);
+		DrawArc(hdc, circle, a1, a2, inColor);
 	}
 }
 
