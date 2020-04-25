@@ -1,0 +1,91 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU
+BEGIN
+    POPUP "Draw"
+    BEGIN
+        MENUITEM "Circle",                      ID_DRAW_CIRCLE
+        MENUITEM "Line",                        ID_DRAW_LINE
+        MENUITEM "Cubic Curve",                 ID_DRAW_CUBICCURVE
+        MENUITEM SEPARATOR
+        MENUITEM "Remove all drawings",         ID_DRAW_REMOVEALLDRAWINGS
+    END
+    POPUP "Clipping"
+    BEGIN
+        MENUITEM "New Window",                  ID_CLIPPING_NEWWINDOW, CHECKED
+        MENUITEM SEPARATOR
+        MENUITEM "Turn off clipping",           ID_CLIPPING_TURNOFFCLIPPING
+        MENUITEM "Remove all windows",          ID_CLIPPING_REMOVEALL
+    END
+    POPUP "SetPixel"
+    BEGIN
+        MENUITEM "Traditional",                 ID_SETPIXEL_TRADITIONAL
+        MENUITEM "Optimized",                   ID_SETPIXEL_OPTIMIZED, CHECKED
+    END
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

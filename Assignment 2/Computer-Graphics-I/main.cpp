@@ -3,6 +3,8 @@
 #include "Win32.h"
 #include "GraphicsAlgo.h"
 #include "Geometry.h"
+#include "MenuHandler.h"
+
 using namespace Geometry;
 using namespace GraphicsAlgo;
 
@@ -11,6 +13,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 int main(int argc, char* argv[]) {
     return WinMain(GetModuleHandle(NULL), NULL, argv[0], 1);
 }
+
 
 
 enum class MODE {
@@ -37,11 +40,15 @@ DWORD WINAPI ConsoleMenu(LPVOID lpParam) {
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow) {
 
-    CreateThread(NULL, NULL, ConsoleMenu, NULL, NULL, NULL);
+    puts("IMPORTANT NOTICE: If you are drawing a window, a circle, or a line, you need to click and drag (not click twice).");
+    puts("If you are drawing a curve, click four times. Each click will be marked with a small circle until the four clicks are finalized.");
+    //CreateThread(NULL, NULL, ConsoleMenu, NULL, NULL, NULL);
 
     HWND hwnd = Win32::CreateFunctionalWindow(hInstance, WndProc,
         RECT{ CW_USEDEFAULT ,CW_USEDEFAULT ,800,600 },
-        L"Assignment 2");
+        L"Assignment 2", MenuHandler::getMenuName());
+    
+    MenuHandler::initializeMenu(hwnd);
 
     Win32::RunMessageLoop();
 
@@ -66,28 +73,43 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             HDC hdc = nullptr;
             PAINTSTRUCT ps;
 
-            hdc = Win32::BeginDoubleBufferPaint(hwnd, &ps);
-            FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(255, 255, 255)));
-            Win32::StartFastPixel(hdc);
+            if (MenuHandler::Menu().SetPixel.getCheckedIndex() == 0) {
+                hdc = BeginPaint(hwnd, &ps);
+                FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(255, 255, 255)));
+            }
+            else {
+                hdc = Win32::BeginDoubleBufferPaint(hwnd, &ps);
+                FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(255, 255, 255)));
+                Win32::StartFastPixel(hdc);
+            }
+
+            int actualWindowCnt = MenuHandler::Menu().NoClipping.isChecked() ? 0 : windowCnt;
 
             for(int i = 0; i < windowCnt; i++)
                 DrawCircle(hdc, window[i], 0);
 
 
             for (int i = 0; i < lineCnt; i++)
-                ClipLineOnCircles(hdc, window,windowCnt, line[i], RGB(0, 0, 255), RGB(255, 0, 0));
+                ClipLineOnCircles(hdc, window, actualWindowCnt, line[i], RGB(0, 0, 255), RGB(255, 0, 0));
 
             for (int i = 0; i < circleCnt; i++)
-                ClipCircleOnCircles(hdc, window,windowCnt, circle[i], RGB(0, 0, 255), RGB(255, 0, 0));
+                ClipCircleOnCircles(hdc, window, actualWindowCnt, circle[i], RGB(0, 0, 255), RGB(255, 0, 0));
 
             for (int i = 0; i < bezierCnt; i++)
-                ClipBezierOnCircles(hdc, window, windowCnt, bezier[i], RGB(0, 0, 255), RGB(255, 0, 0));
+                ClipBezierOnCircles(hdc, window, actualWindowCnt, bezier[i], RGB(0, 0, 255), RGB(255, 0, 0));
 
             for (int i = 0; i < bezierClickCnt; i++)
                 DrawCircle(hdc, { bezier[bezierCnt][i],5 }, 0);
 
-            Win32::EndFastPixel(hdc);
-            Win32::EndDoubleBufferPaint(hwnd, &ps);
+            if (MenuHandler::Menu().SetPixel.getCheckedIndex() == 0) {
+                EndPaint(hwnd, &ps);
+            }
+            else {
+
+                Win32::EndFastPixel(hdc);
+                Win32::EndDoubleBufferPaint(hwnd, &ps);
+            }
+
 
             return 0;
         }
@@ -102,8 +124,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 else if (modeOfOperation == MODE::WINDOW) {
                     window[windowCnt -1].setRadiusFromPoint(cursor);
                 }
+                InvalidateRect(hwnd, NULL, true);
             }
-            InvalidateRect(hwnd, NULL, true);
             return 0;
         }
         case WM_LBUTTONUP: {
@@ -129,6 +151,22 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 }
             }
             InvalidateRect(hwnd, NULL, true);
+            return 0;
+        }
+        case WM_COMMAND: {
+            MenuHandler::Action ac = MenuHandler::performMenuAction(hwnd, wParam);
+            if (ac == MenuHandler::Action::REMOVE_DRAWINGS) {
+                bezierCnt = bezierClickCnt = circleCnt = lineCnt = 0;
+                InvalidateRect(hwnd, NULL, true);
+            }
+            else if (ac == MenuHandler::Action::REMOVE_WINDOWS) {
+                windowCnt = 0;
+                InvalidateRect(hwnd, NULL, true);
+            }
+            else {
+                modeOfOperation = (MODE)(MenuHandler::Menu().ModeOfOperation.getCheckedIndex() + 1);
+                bezierClickCnt = 0;
+            }
             return 0;
         }
     }

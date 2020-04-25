@@ -71,7 +71,9 @@ void Win32::SetPixelFast(HDC hdc, int x, int y, COLORREF color)
 
 COLORREF Win32::GetPixelFast(HDC hdc, int x, int y)
 {
-    
+    if (!fastpixelmode) {
+        return GetPixel(hdc, x, y);
+    }
     if (x < 0 || y < 0 || x >= bmpHeader.biWidth || y >= -bmpHeader.biHeight) return 0xFFFFFFFF;
 
     COLORREF color = bmp[y * bmpHeader.biWidth + x];

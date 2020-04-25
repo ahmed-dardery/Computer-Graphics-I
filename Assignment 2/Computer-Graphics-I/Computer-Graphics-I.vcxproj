@@ -143,12 +143,18 @@
     <ClCompile Include="GraphicsAlgo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Geometry.cpp" />
+    <ClCompile Include="MenuHandler.cpp" />
     <ClCompile Include="Win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GraphicsAlgo.h" />
     <ClInclude Include="Geometry.h" />
+    <ClInclude Include="MenuHandler.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Win32.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Computer-Graphics-I.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
