@@ -251,7 +251,6 @@ void GraphicsAlgo::ClipArcOnCircles(HDC hdc, const Geometry::Circle* window, int
 			DrawCircle(hdc, circle, inColor);
 	}
 	else {
-		DrawCircle(hdc, { p1,5 }, 0);
 		double a1 = atan2(1.0 * -p1.y + circle.org.y, 1.0 * p1.x - circle.org.x);
 		double a2 = atan2(1.0 * -p2.y + circle.org.y, 1.0 * p2.x - circle.org.x);
 		if (a1 < 0) a1 += 2 * PI;
