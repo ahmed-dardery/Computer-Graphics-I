@@ -73,7 +73,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             HDC hdc = nullptr;
             PAINTSTRUCT ps;
 
-            if (MenuHandler::Menu().SetPixel.getCheckedIndex() == 0) {
+            bool slowPixel = MenuHandler::Menu().groupMenus[MenuHandler::SetPixel].getCheckedIndex() == 0;
+            if (slowPixel) {
                 hdc = BeginPaint(hwnd, &ps);
                 FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(255, 255, 255)));
             }
@@ -83,7 +84,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 Win32::StartFastPixel(hdc);
             }
 
-            int actualWindowCnt = MenuHandler::Menu().NoClipping.isChecked() ? 0 : windowCnt;
+            int actualWindowCnt = MenuHandler::Menu().checkMenus[MenuHandler::NoClipping].isChecked() ? 0 : windowCnt;
 
             for(int i = 0; i < windowCnt; i++)
                 DrawCircle(hdc, window[i], 0);
@@ -101,7 +102,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             for (int i = 0; i < bezierClickCnt; i++)
                 DrawCircle(hdc, { bezier[bezierCnt][i],5 }, 0);
 
-            if (MenuHandler::Menu().SetPixel.getCheckedIndex() == 0) {
+            if (slowPixel) {
                 EndPaint(hwnd, &ps);
             }
             else {
@@ -154,7 +155,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         case WM_COMMAND: {
-            MenuHandler::Action ac = MenuHandler::performMenuAction(hwnd, wParam);
+            MenuHandler::Action ac = MenuHandler::Menu().performMenuAction(hwnd, wParam);
             if (ac == MenuHandler::Action::REMOVE_DRAWINGS) {
                 bezierCnt = bezierClickCnt = circleCnt = lineCnt = 0;
                 InvalidateRect(hwnd, NULL, true);
@@ -164,7 +165,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 InvalidateRect(hwnd, NULL, true);
             }
             else {
-                modeOfOperation = (MODE)(MenuHandler::Menu().ModeOfOperation.getCheckedIndex() + 1);
+                modeOfOperation = (MODE)(MenuHandler::Menu().groupMenus[MenuHandler::ModeOfOperation].getCheckedIndex() + 1);
                 bezierClickCnt = 0;
             }
             return 0;

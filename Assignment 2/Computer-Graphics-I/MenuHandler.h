@@ -1,14 +1,22 @@
 #pragma once
 #include <Windows.h>
+#include <vector>
+
 namespace MenuHandler {
     enum class Action {
-        REMOVE_WINDOWS,
         REMOVE_DRAWINGS,
+        REMOVE_WINDOWS,
+        CLEAR_SCREEN,
         NO_ACTION
     };
 
+    enum MenuName {
+        ModeOfOperation = 0,
+        SetPixel = 1,
+        NoClipping = 0
+    };
+
     LPCWSTR getMenuName();
-    Action performMenuAction(HWND hwnd, LPARAM);
     void initializeMenu(HWND);
 
     class CheckMenu {
@@ -17,7 +25,6 @@ namespace MenuHandler {
         HMENU hlp;
         int ID;
     public:
-        CheckMenu();
         CheckMenu(HMENU hlp, int ID);
         bool isChecked();
         void setChecked(bool v);
@@ -27,23 +34,26 @@ namespace MenuHandler {
 
     class GroupMenu {
     private:
-        CheckMenu* choices;
-        int nCnt;
+        HMENU hlp;
+        int startID, endID;
+        int selectedIndex;
     public:
-        GroupMenu();
-        GroupMenu(HMENU hlp, int* ids, int n);
+        GroupMenu(HMENU hlp, int startID, int endID, int selectedIndex);
         int getCheckedIndex();
-        void setChecked(int id);
+        void setCheckedByID(int id);
+        bool contains(int id);
     };
 
     class MainMenu {
+    private:
+        Action handleCheckAndGroup(int ID);
     public:
-        GroupMenu ModeOfOperation;
-        GroupMenu SetPixel;
-        CheckMenu NoClipping;
+        std::vector<GroupMenu> groupMenus;
+        std::vector<CheckMenu> checkMenus;
         MainMenu();
         MainMenu(HMENU menu);
+        Action performMenuAction(HWND hwnd, LPARAM wParam);
     };
 
-    MainMenu Menu();
+    MainMenu& Menu();
 }

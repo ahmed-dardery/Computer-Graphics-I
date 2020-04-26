@@ -3,8 +3,8 @@
 // Used by Computer-Graphics-I.rc
 //
 #define IDR_MENU1                       101
-#define ID_DRAW_CIRCLE                  40001
-#define ID_DRAW_LINE                    40002
+#define ID_DRAW_LINE                    40001
+#define ID_DRAW_CIRCLE                  40002
 #define ID_DRAW_CUBICCURVE              40003
 #define ID_CLIPPING_NEWWINDOW           40004
 #define ID_CLIPPING_REMOVEALL           40005

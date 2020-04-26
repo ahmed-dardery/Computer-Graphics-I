@@ -5,12 +5,10 @@
 namespace MenuHandler {
     MainMenu menu;
 
-    CheckMenu::CheckMenu() {
-
-    }
     CheckMenu::CheckMenu(HMENU hlp, int ID) : hlp(hlp), ID(ID) {
         mii.cbSize = sizeof(MENUITEMINFO);
         mii.fMask = MIIM_STATE;
+
         GetMenuItemInfo(hlp, ID, NULL, &mii);
     }
     bool CheckMenu::isChecked() {
@@ -18,11 +16,11 @@ namespace MenuHandler {
     }
     void CheckMenu::setChecked(bool v) {
         mii.fState = v ? MFS_CHECKED : MFS_UNCHECKED;
-        SetMenuItemInfo(hlp, ID, NULL, &mii);
+        CheckMenuItem(hlp, ID, v ? MFS_CHECKED : MFS_UNCHECKED);
     }
     void CheckMenu::toggleChecked() {
         mii.fState ^= MFS_CHECKED;
-        SetMenuItemInfo(hlp, ID, NULL, &mii);
+        CheckMenuItem(hlp, ID, mii.fState);
     }
 
     int CheckMenu::getID()
@@ -30,40 +28,35 @@ namespace MenuHandler {
         return ID;
     }
 
-    GroupMenu::GroupMenu()
+    GroupMenu::GroupMenu(HMENU hlp, int startID, int endID, int selectedIndex)
+        : hlp(hlp), startID(startID), endID(endID)
     {
+        setCheckedByID(selectedIndex + startID);
     }
-    GroupMenu::GroupMenu(HMENU hlp, int* ids, int n)
-    {
-        nCnt = n;
-        choices = new CheckMenu[n];
-        for (int i = 0; i < n; i++)
-            choices[i] = CheckMenu(hlp, ids[i]);
-    }
+
     int GroupMenu::getCheckedIndex()
     {
-        for (int i = 0; i < nCnt; i++)
-            if (choices[i].isChecked()) return i;
-        return -1;
+        return selectedIndex;
     }
-    void GroupMenu::setChecked(int id)
-    {
-        for (int i = 0; i < nCnt; i++) {
-            choices[i].setChecked(choices[i].getID() == id);
-        }
+    void GroupMenu::setCheckedByID(int id) {
+        CheckMenuRadioItem(hlp, startID, endID, id, MF_BYCOMMAND);
+        selectedIndex = id - startID;
+    }
+
+    bool GroupMenu::contains(int id) {
+        return (id >= startID && id <= endID);
     }
 
     MainMenu::MainMenu() {
 
     }
 
-    int drawingIds[] = { ID_DRAW_LINE,ID_DRAW_CIRCLE,ID_DRAW_CUBICCURVE,ID_CLIPPING_NEWWINDOW };
-    int setPixelIds[] = { ID_SETPIXEL_TRADITIONAL, ID_SETPIXEL_OPTIMIZED };
-    MainMenu::MainMenu(HMENU menu) :
-        ModeOfOperation(menu, drawingIds, sizeof drawingIds / sizeof drawingIds[0]),
-        NoClipping(menu, ID_CLIPPING_TURNOFFCLIPPING),
-        SetPixel(menu, setPixelIds, sizeof setPixelIds / sizeof setPixelIds[0])
-    {    }
+    MainMenu::MainMenu(HMENU menu)
+    {
+        groupMenus.push_back(GroupMenu(menu, ID_DRAW_LINE, ID_CLIPPING_NEWWINDOW, 3));
+        groupMenus.push_back(GroupMenu(menu, ID_SETPIXEL_TRADITIONAL, ID_SETPIXEL_OPTIMIZED, 1));
+        checkMenus.push_back(CheckMenu(menu, ID_CLIPPING_TURNOFFCLIPPING));
+    }
 
     LPCWSTR getMenuName() {
         return MAKEINTRESOURCE(IDR_MENU1);
@@ -72,37 +65,36 @@ namespace MenuHandler {
     void initializeMenu(HWND hwnd) {
         menu = MainMenu(GetMenu(hwnd));
     }
-    MainMenu Menu()
+    MainMenu& Menu()
     {
         return menu;
     }
-    Action performMenuAction(HWND hwnd, LPARAM wParam) {
+    Action MainMenu::handleCheckAndGroup(int ID) {
+        for (auto& v : groupMenus) {
+            if (v.contains(ID)) {
+                v.setCheckedByID(ID);
+                return Action::NO_ACTION;
+            }
+        }
+        for (auto& v : checkMenus) {
+            if (v.getID() == ID) {
+                v.toggleChecked();
+                return Action::NO_ACTION;
+            }
+        }
+        return Action::NO_ACTION;
+    }
+    Action MainMenu::performMenuAction(HWND hwnd, LPARAM wParam) {
         switch (LOWORD(wParam))
         {
-            case ID_SETPIXEL_OPTIMIZED:
-            case ID_SETPIXEL_TRADITIONAL: {
-                menu.SetPixel.setChecked(LOWORD(wParam));
-                return Action::NO_ACTION;
-            }
-            case ID_DRAW_LINE:
-            case ID_DRAW_CIRCLE:
-            case ID_DRAW_CUBICCURVE:
-            case ID_CLIPPING_NEWWINDOW: {
-                menu.ModeOfOperation.setChecked(LOWORD(wParam));
-                return Action::NO_ACTION;
-            }
             case ID_DRAW_REMOVEALLDRAWINGS: {
                 return Action::REMOVE_DRAWINGS;
             }
             case ID_CLIPPING_REMOVEALL: {
                 return Action::REMOVE_WINDOWS;
             }
-            case ID_CLIPPING_TURNOFFCLIPPING:{
-                menu.NoClipping.toggleChecked();
-                return Action::NO_ACTION;
-            }
             default: {
-                return Action::NO_ACTION;
+                return handleCheckAndGroup(LOWORD(wParam));
             }
         }
 

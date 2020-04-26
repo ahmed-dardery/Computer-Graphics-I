@@ -62,7 +62,7 @@ BEGIN
     END
     POPUP "Clipping"
     BEGIN
-        MENUITEM "New Window",                  ID_CLIPPING_NEWWINDOW, CHECKED
+        MENUITEM "New Window",                  ID_CLIPPING_NEWWINDOW
         MENUITEM SEPARATOR
         MENUITEM "Turn off clipping",           ID_CLIPPING_TURNOFFCLIPPING
         MENUITEM "Remove all windows",          ID_CLIPPING_REMOVEALL
@@ -70,7 +70,7 @@ BEGIN
     POPUP "SetPixel"
     BEGIN
         MENUITEM "Traditional",                 ID_SETPIXEL_TRADITIONAL
-        MENUITEM "Optimized",                   ID_SETPIXEL_OPTIMIZED, CHECKED
+        MENUITEM "Optimized",                   ID_SETPIXEL_OPTIMIZED
     END
 END
 
